@@ -1,0 +1,41 @@
+SIMCACHE
+=====
+
+A python-based library for keeping track
+of CMB simulations and filtered skymaps.
+
+Requirements:
+ * numpy
+ * healpy
+ * qcinv
+
+Is known to work with:
+ * python 2.6.1
+ * numpy 1.5.0
+
+There were some bugs with spin-s transforms
+in healpy, fixed in the github-devel version
+with commit af19f95fd3c72bfda35fdf9076728d07 
+
+To install:
+
+python setup.py install
+
+(or add the simcache directory to your $PYTHONPATH)
+
+The simcache maintains a "data" directory to
+which it may download files. By default the
+data directory will be at the root of the
+installation, although you can select a 
+different directory by setting the environment
+variable $SIMCACHE_DATA
+
+To test:
+
+There are some sample scripts which will
+generate WMAP temperature (and polarization)
+simulations, filter them and then plot their
+spectra in the examples/wmap directory, e.g.
+
+cd examples/wmap
+./plot_cl_t_ivf.py
