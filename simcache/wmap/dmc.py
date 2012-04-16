@@ -16,7 +16,7 @@ def n2r(nside):
 
 #
 
-wmap_das   = ['Q1', 'Q2', 'V1', 'V2', 'W1', 'W2', 'W3', 'W4']
+wmap_das   = ['K1', 'Ka1', 'Q1', 'Q2', 'V1', 'V2', 'W1', 'W2', 'W3', 'W4']
 wmap_bands = ['K', 'Ka', 'Q', 'V', 'W']
 
 #
@@ -42,6 +42,8 @@ sigma0[(7, True, 'P')] = {  'K1' : 0.000, 'Ka1' : 2.192,
 
 def get_fname_iqumap(year, det, forered):
     assert( year == 7 ) #FIXME: remove after sanity checking that other years will work.
+    if det in ['K', 'K1']:
+        assert(forered == False)
 
     tdname = ("/data/map/dr" + str(y2r(year)) +
               "/skymaps/" + str(year) + "yr/" +
@@ -140,6 +142,10 @@ def get_bl(year, det):
         return np.loadtxt(rfname)[:,1]
     
     elif det in wmap_bands:
+        if (det == 'K'):
+            return get_bl(year, 'K1')
+        elif (det == 'Ka'):
+            return get_bl(year, 'Ka1')
         if (det == 'Q'):
             return 0.5 * (get_bl(year, 'Q1') + get_bl(year, 'Q2'))
         elif (det == 'V'):
