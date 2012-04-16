@@ -27,7 +27,7 @@ def download(url, fname):
         sys.stdout.write( "\n" ); sys.stdout.flush()
     except:
         print "download failed! removing partial."
-        os.remove(rfname)
+        os.remove(fname)
 
 class avg:
     def __init__(self, dovar=True, docov=False, clone=copy.deepcopy):
