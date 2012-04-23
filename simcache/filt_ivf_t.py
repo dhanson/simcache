@@ -29,7 +29,7 @@ class library(object):
 
     def get_dat_tlm(self, det):
         tfname = self.lib_dir + "/dat_det_" + det + "_tlm.npy"
-        if not os.path.exists(tfname): self.cache_dat_teb(det)
+        if not os.path.exists(tfname): self.cache_dat_t(det)
         return np.load(tfname)
 
     def get_sim_tlm(self, det, idx):
@@ -46,7 +46,7 @@ class library(object):
         
         np.save(tlm_fname, tlm)
 
-    def cache_dat_teb(self, det):
+    def cache_dat_t(self, det):
         tlm_fname = self.lib_dir + "/dat_det_" + det + "_tlm.npy"
 
         assert( not os.path.exists(tlm_fname) )
