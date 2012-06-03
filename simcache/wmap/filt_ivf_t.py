@@ -121,8 +121,7 @@ class qcinv_library(simcache.filt_ivf_t.library):
 class qcinv_multi_simple_library(simcache.filt_ivf_t.library):
     # library for symmetric inverse-variance.
 
-    def __init__(self, dets, lmax, cl, mask_t, sim_lib, lib_dir):
-        self.dets   = dets
+    def __init__(self, lmax, cl, mask_t, sim_lib, lib_dir):
         self.lmax   = lmax
         self.cl     = cl
         self.mask_t = mask_t
@@ -137,6 +136,13 @@ class qcinv_multi_simple_library(simcache.filt_ivf_t.library):
             pk.dump( self.hashdict(), open(lib_dir + "/sim_hash.pk", 'w') )
         simcache.util.hash_check( pk.load( open(lib_dir + "/sim_hash.pk", 'r') ), self.hashdict() )
 
+    def detstr2dets(self, det):
+        dets = []
+        if det == 'QVW':
+            return ['Q', 'V', 'W']
+        else:
+            assert(0)
+
     def hashdict(self):
         # return a list of hashes used to
         # describe the parameters of this library,
@@ -149,31 +155,25 @@ class qcinv_multi_simple_library(simcache.filt_ivf_t.library):
                  'mask_t'  : hashlib.sha1(qcinv.util.load_map(self.mask_t).view(np.uint8)).hexdigest(),
                  'sim_lib' : self.sim_lib.hashdict() }
 
-    def get_dat_tlm(self):
-        tfname = self.lib_dir + "/dat_tlm.npy"
-        if not os.path.exists(tfname): self.cache_dat_t()
-        return np.load(tfname)
+    def cache_sim_t(self, detstr, idx):
+        dets = self.detstr2dets(detstr)
 
-    def get_sim_tlm(self, idx):
-        tfname = self.lib_dir + "/sim_" + ('%04d' % idx) + "_tlm.npy"
-        if not os.path.exists(tfname): self.cache_sim_t(idx)
-        return np.load(tfname)
-
-    def cache_sim_t(self, idx):
-        tlm_fname = self.lib_dir + "/sim_" + ('%04d' % idx) + "_tlm.npy"
+        tlm_fname = self.lib_dir + "/sim_det_" + detstr + "_" + ('%04d' % idx) + "_tlm.npy"
 
         assert( not os.path.exists(tlm_fname) )
 
-        tlm = self.apply_ivf( [self.sim_lib.get_sim_tmap(det, idx) for det in self.dets] )
+        tlm = self.apply_ivf( dets, [self.sim_lib.get_sim_tmap(det, idx) for det in dets] )
 
         np.save(tlm_fname, tlm)
 
-    def cache_dat_t(self):
-        tlm_fname = self.lib_dir + "/dat_tlm.npy"
+    def cache_dat_t(self, detstr):
+        dets = self.detstr2dets(detstr)
+
+        tlm_fname = self.lib_dir + "/dat_det_" + detstr + "_tlm.npy"
 
         assert( not os.path.exists(tlm_fname) )
 
-        tlm = self.apply_ivf( [self.sim_lib.get_dat_tmap(det) for det in self.dets] )
+        tlm = self.apply_ivf( dets, [self.sim_lib.get_dat_tmap(det) for det in dets] )
 
         np.save(tlm_fname, tlm)
 
@@ -183,11 +183,11 @@ class qcinv_multi_simple_library(simcache.filt_ivf_t.library):
         npix = len(mask_t)
         return mask_t.sum() / npix
 
-    def apply_ivf(self, tmaps):
+    def apply_ivf(self, dets, tmaps):
         assert(self.lmax == 1000)
 
         n_inv_filts = []
-        for det in self.dets:
+        for det in dets:
             mask_t = qcinv.util.load_map(self.mask_t)
 
             bl  = dmc.get_bl(self.sim_lib.year, det)[0:self.lmax+1]
@@ -204,7 +204,7 @@ class qcinv_multi_simple_library(simcache.filt_ivf_t.library):
                      dmc.sigma0[(self.sim_lib.year, self.sim_lib.forered, 'T')][det]**2 / 1e6 * mask_t )
             n_inv_filt = qcinv.opfilt_tt.alm_filter_ninv( ninv, bl*pxw, marge_monopole=True, marge_dipole=True, marge_maps=[] )
             n_inv_filts.append( n_inv_filt )
-        n_inv_filts = qcinv.opfilt_tt_multi_simple.alm_filter_ninv_filts( n_inv_filts, degrade_single=False )
+        n_inv_filts = qcinv.opfilt_tt_multi_simple.alm_filter_ninv_filts( n_inv_filts, degrade_single=True )
 
         chain = qcinv.multigrid.multigrid_chain( qcinv.opfilt_tt_multi_simple, chain_descr, self.cl, n_inv_filts )
 
@@ -213,6 +213,19 @@ class qcinv_multi_simple_library(simcache.filt_ivf_t.library):
 
         return tlm
 
-    def get_ftl(self, det):
-        return get_ftl_eff( self.lmax, self.sim_lib.year, self.sim_lib.nside, det, self.sim_lib.forered,
-                            self.cl, qcinv.util.load_map(self.mask_t) )
+    def get_ftl(self, detstr):
+        dets = self.detstr2dets(detstr)
+
+        clnn    = np.zeros(self.lmax+1)
+        for det in dets:
+            noiseT_uK_arcmin = dmc.get_nlev_t_uK_arcmin(self.sim_lib.year, det, self.sim_lib.forered, qcinv.util.load_map(self.mask_t))
+
+            bl  = dmc.get_bl( self.sim_lib.year, det)[0:self.lmax+1]
+            pxw = hp.pixwin( self.sim_lib.nside )[0:self.lmax+1]
+
+            clnn += (bl * pxw)**2 / (noiseT_uK_arcmin * np.pi/180./60.)**2
+        clnn = 1./clnn
+
+        ftl = 1.0 / (self.cl.cltt[0:self.lmax+1] + clnn); ftl[0:2] = 0.0
+
+        return ftl
