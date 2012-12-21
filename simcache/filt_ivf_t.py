@@ -58,8 +58,11 @@ class library(object):
     def apply_ivf( self, det, tmap ):
         assert(0)
 
+    def get_fmask(self):
+        return qcinv.util.load_map(self.mask_t)
+
     def get_fsky(self):
-        mask_t = qcinv.util.load_map(self.mask_t)
+        mask_t = self.get_fmask()
 
         npix = len(mask_t)
         return mask_t.sum() / npix

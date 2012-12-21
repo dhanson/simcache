@@ -41,7 +41,7 @@ class cmb_nse_library(simcache.sims_tmap.library):
                  'super'         : super( cmb_nse_library, self ).hashdict() }
 
     def get_dat_tmap(self, det):
-        return hp.read_map( dmc.get_fname_iqumap(self.year, det, self.forered), hdu=1, field=0 ) * 1.e3
+        return hp.read_map( dmc.get_fname_imap(self.year, det, self.forered), hdu=1, field=0 ) * 1.e3
 
     def get_beam(self, det):
         pxw  = hp.pixwin(self.nside)[0:self.lmax+1]
@@ -66,7 +66,7 @@ class cmb_nse_library(simcache.sims_tmap.library):
     def simulate_nse(self, det):
         print 'simulate noise forered = ', self.forered
         if self.ntype == 'nobs':
-            rtnobsinv = 1.0 / np.sqrt( hp.read_map( dmc.get_fname_iqumap(self.year, det, self.forered), hdu=1, field=3 ) )
+            rtnobsinv = 1.0 / np.sqrt( hp.read_map( dmc.get_fname_imap(self.year, det, self.forered), hdu=1, field=1 ) )
             npix = 12*self.nside**2
             
             t_nse = rtnobsinv * dmc.sigma0[(self.year, self.forered, 'T')][det] * 1e3 * np.random.standard_normal( npix )

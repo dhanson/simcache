@@ -9,7 +9,7 @@ import simcache
 basedir = os.environ.get('SIMCACHE_DATA', os.path.dirname(simcache.__file__)) + "/wmap/"
 
 def y2r(year):
-    return {7 : 4}[year]
+    return {7 : 4, 9 : 5}[year]
 
 def n2r(nside):
     return {512 : 9}[nside]
@@ -28,6 +28,13 @@ sigma0[(7, False, 'T')] = { 'K1' : 1.437, 'Ka1' : 1.470,
                             'K'  : 1.437, 'Ka'  : 1.470, 'Q'  : 2.197, 'V'  : 3.137, 'W' : 6.549 }
 sigma0[(7, True, 'T')]  = sigma0[(7, False, 'T')]
 
+sigma0[(9, False, 'T')] = { 'K1' : 1.429, 'Ka1' : 1.466,
+                            'Q1' : 2.245, 'Q2'  : 2.131,
+                            'V1' : 3.314, 'V2'  : 2.949,
+                            'W1' : 5.899, 'W2'  : 6.562, 'W3' : 6.941, 'W4' : 6.773,
+                            'K'  : 1.429, 'Ka'  : 1.466, 'Q'  : 2.188, 'V'  : 3.131, 'W' : 6.544 }
+sigma0[(9, True, 'T')]  = sigma0[(9, False, 'T')]
+
 sigma0[(7, False, 'P')] = { 'K1' : 1.456, 'Ka1' : 1.490,
                             'Q1' : 2.290, 'Q2'  : 2.164,
                             'V1' : 3.348, 'V2'  : 2.979,
@@ -41,7 +48,7 @@ sigma0[(7, True, 'P')] = {  'K1' : 0.000, 'Ka1' : 2.192,
                             'K'  : 0.000, 'Ka'  : 2.192, 'Q'  : 2.672, 'V' : 3.371, 'W' : 6.877 }
 
 def get_fname_iqumap(year, det, forered):
-    assert( year == 7 ) #FIXME: remove after sanity checking that other years will work.
+    assert( year in [7,9] ) #FIXME: remove after sanity checking that other years will work.
     if det in ['K', 'K1']:
         assert(forered == False)
 
@@ -64,14 +71,44 @@ def get_fname_iqumap(year, det, forered):
     assert(os.path.exists(rfname))
 
     return rfname
+
+def get_fname_imap(year, det, forered):
+    assert( year in [7,9] ) #FIXME: remove after sanity checking that other years will work.
+    if det in ['K', 'K1']:
+        assert(forered == False)
+
+    tdname = ("/data/map/dr" + str(y2r(year)) +
+              "/skymaps/" + str(year) + "yr/" +
+              {False : 'raw/', True : 'forered/'}[forered == True])
     
-def get_fname_temperature_analysis_mask(year, nside):
-    assert(year == 7)    #FIXME: remove after sanity checking that other years will work.
-    assert(nside == 512) #FIXME: remove after sanity checking that other nside will work. 
+    tfname = ("wmap" +
+              {False : '', True : '_da'}[det in wmap_das] +
+              {False : '', True : '_band'}[det in wmap_bands] + 
+              {False : '', True : '_forered'}[forered == True] +
+              "_imap_r9_" + str(year) + "yr_" + det + "_v" + str(y2r(year)) + ".fits")
+
+    rfname = basedir + tdname + tfname
+
+    if not os.path.exists(rfname):
+        if not os.path.exists(basedir + tdname): os.makedirs(basedir + tdname)
+        url = "http://lambda.gsfc.nasa.gov" + tdname + tfname
+        simcache.util.download(url, rfname)      
+    assert(os.path.exists(rfname))
+
+    return rfname
+    
+def get_fname_temperature_analysis_mask(year, nside, label=None):
+    assert(year in [7,9]) #FIXME: remove after sanity checking that other years will work.
+    assert(nside == 512)  #FIXME: remove after sanity checking that other nside will work. 
+
+    if label == None:
+        label = ''
+    else:
+        label = label + '_'
     
     tdname = ("/data/map/dr" + str(y2r(year)) +
               "/ancillary/masks/")
-    tfname = ("wmap_temperature_analysis_mask_r" + str(n2r(nside)) +  "_" + str(year) + "yr_v" + str(y2r(year)) + ".fits")
+    tfname = ("wmap_temperature_" + label + "analysis_mask_r" + str(n2r(nside)) +  "_" + str(year) + "yr_v" + str(y2r(year)) + ".fits")
 
     rfname = basedir + tdname + tfname
 
@@ -84,8 +121,8 @@ def get_fname_temperature_analysis_mask(year, nside):
     return rfname
 
 def get_fname_polarization_analysis_mask(year, nside):
-    assert(year == 7)    #FIXME: remove after sanity checking that other years will work.
-    assert(nside == 512) #FIXME: remove after sanity checking that other nside will work. 
+    assert(year in [7,9]) #FIXME: remove after sanity checking that other years will work.
+    assert(nside == 512)  #FIXME: remove after sanity checking that other nside will work. 
     
     tdname = ("/data/map/dr" + str(y2r(year)) +
               "/ancillary/masks/")
@@ -102,7 +139,7 @@ def get_fname_polarization_analysis_mask(year, nside):
     return rfname
 
 def get_fname_bestfit_cl(year, label):
-    assert(year == 7)    #FIXME: remove after sanity checking that other years will work.
+    assert(year in [7,9]) #FIXME: remove after sanity checking that other years will work.
 
     # http://lambda.gsfc.nasa.gov/data/map/dr4/dcp/c_ls/wmap_lcdm_sz_lens_wmap7_cl_v4.tar.gz
     
@@ -124,7 +161,7 @@ def get_fname_bestfit_cl(year, label):
     return rfname
 
 def get_bl(year, det):
-    assert(year == 7)    #FIXME: remove after sanity checking that other years will work.
+    assert(year in [7,9])    #FIXME: remove after sanity checking that other years will work.
     
     if det in wmap_das:
         tdname = ("/data/map/dr" + str(y2r(year)) +
@@ -164,7 +201,7 @@ def get_bestfit_cl_lensed(year, label, lmax=None):
     return qcinv.util.camb_clfile(rfname + "/bestfit_lensedCls.dat", lmax=lmax)
 
 def get_nlev_t_uK_arcmin(year, det, forered, mask_t):
-    nobsinv = 1.0 / hp.read_map( get_fname_iqumap(year, det, forered), hdu=1, field=3 )
+    nobsinv = 1.0 / hp.read_map( get_fname_imap(year, det, forered), hdu=1, field=1 )
 
     npix = len(nobsinv)
     nlev_t = np.sqrt( 4.*np.pi/npix * np.sum( mask_t * nobsinv * sigma0[(year, forered, 'T')][det]**2 * 1.e6  ) / np.sum(mask_t) ) * 180.*60./np.pi
@@ -181,6 +218,6 @@ def get_nlev_tp_uK_arcmin(year, det, forered, mask_t, mask_p):
     return nlev_t, nlev_p
 
 def get_cl(year, id):
-    assert(year == 7)
+    assert(year in [7,9])
 
     
