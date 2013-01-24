@@ -16,7 +16,7 @@ import simcache.wmap.filt_ivf_t as filt_ivf_t
 prefix  = "sims_t"
 
 det     = 'V'
-year    = 7
+year    = 9
 forered = True
 ntype   = 'nobs'
 lmax    = 1000
@@ -24,7 +24,7 @@ nside   = 512
 
 nsims   = 10
 
-mask_t  = simcache.wmap.dmc.get_fname_temperature_analysis_mask(year, nside)
+mask_t  = simcache.wmap.dmc.get_fname_temperature_analysis_mask(year, nside, label='kq85')
 
 cl = simcache.wmap.dmc.get_bestfit_cl_lensed(7, 'lcdm_sz_lens')
 bl = simcache.wmap.dmc.get_bl(7, 'V')[0:lmax+1]
